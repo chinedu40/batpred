@@ -249,6 +249,8 @@ from tests.test_alphaess_publish import run_alphaess_publish_tests
 from tests.test_alphaess_control import run_alphaess_control_tests
 from tests.test_alphaess_storage import run_alphaess_storage_tests
 from tests.test_enphase_api import run_enphase_api_tests
+from tests.test_enphase_local import run_enphase_local_tests
+from tests.test_enphase_local_client import run_enphase_local_client_tests
 from tests.test_solcast import run_solcast_tests
 from tests.test_open_meteo import run_open_meteo_tests
 from tests.test_solar_model import test_solar_model
@@ -680,6 +682,8 @@ def main():
         ("hanchu_publish", run_hanchu_publish_tests, "Hanchu publish/config tests", False),
         ("hanchu_cli", run_hanchu_cli_tests, "Hanchu command-line harness helper tests", False),
         ("enphase_api", run_enphase_api_tests, "Enphase API tests", False),
+        ("enphase_local", run_enphase_local_tests, "Enphase local battery scheduler tests", False),
+        ("enphase_local_client", run_enphase_local_client_tests, "Enphase local HTTPS client tests", False),
         ("solcast", run_solcast_tests, "Solcast API tests", False),
         ("open_meteo", run_open_meteo_tests, "Open-Meteo solar forecast provider tests", False),
         ("solar_model", test_solar_model, "Shared solar GTI conversion model tests", False),

@@ -1,0 +1,68 @@
+---
+pred_bat:
+  module: predbat
+  class: PredBat
+  prefix: predbat
+  timezone: Europe/London
+
+  # Replace the placeholders and remove this line after configuring the system.
+  template: true
+
+  # Begin in monitoring mode. Check the gateway and telemetry before enabling
+  # Control charge & discharge and switching Read Only mode off in Predbat.
+  mode: Monitor
+  set_read_only: true
+
+  # The gateway accepts operating modes, not charge/export wattage setpoints.
+  # Keep both options off; the local worker refuses unsupported low-power control.
+  set_charge_low_power: false
+  set_export_low_power: false
+
+  # Obtain a local gateway JWT through Enphase's token portal. These are editing
+  # placeholders: keep real values in secrets.yaml and use the commented !secret
+  # forms in your actual apps.yaml. Replace an expired token and restart.
+  enphase_local_host: 'gateway.local'
+  enphase_local_token: 'replace_with_gateway_JWT'
+  # enphase_local_host: !secret enphase_local_host
+  # enphase_local_token: !secret enphase_local_token
+
+  # HTTPS uses runtime CA trust unless a trusted certificate fingerprint is set.
+  # The fingerprint is public certificate metadata, not a password. Verify it
+  # through a trusted route; never copy one blindly from a failed connection.
+  # enphase_local_fingerprint: !secret enphase_local_fingerprint
+
+  enphase_local_automatic: true
+  enphase_local_allow_discharge: true
+  enphase_local_poll_seconds: 5
+  enphase_local_request_timeout: 5
+
+  # EXAMPLE ONLY: replace 10000 with your battery's actual maximum power in W.
+  # This models the battery; the local API has no wattage/current setpoint.
+  enphase_local_battery_rate_max: 10000
+
+  # Normally capacity comes from the gateway's max_energy value (Wh).
+  # Set a positive kWh override only if that value is unavailable or incorrect.
+  # enphase_local_capacity_kwh: 15
+
+  inverter_type:
+    - EnphaseLocal
+  num_inverters: 1
+
+  # Remove enphase_username and enphase_password from any existing cloud
+  # configuration. enphase_automatic: false does not stop cloud schedule writes.
+  # Disable other controllers before enabling local battery control.
+
+  # Keep real telemetry from your Home Assistant Enphase integration/meters.
+  # Replace every sensor below with your actual entity. Energy must be in kWh,
+  # power in W. Grid power is positive for export; battery power for discharge.
+  load_today: sensor.replace_with_house_energy_today
+  import_today: sensor.replace_with_grid_import_energy_today
+  export_today: sensor.replace_with_grid_export_energy_today
+  pv_today: sensor.replace_with_pv_energy_today
+  load_power: sensor.replace_with_house_power
+  grid_power: sensor.replace_with_grid_power
+  battery_power: sensor.replace_with_battery_power
+  pv_power: sensor.replace_with_pv_power
+
+  # Configure your tariff/rate and solar forecast sources as in your existing
+  # apps.yaml. The local control endpoint does not provide those data sources.

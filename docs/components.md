@@ -22,6 +22,7 @@ This document provides a comprehensive overview of all Predbat components, their
     - [Fox ESS API (fox)](#fox-ess-api-fox)
     - [Tesla Powerwall Teslemetry API (teslemetry)](#tesla-powerwall-teslemetry-api-teslemetry)
     - [Enphase API (enphase)](#enphase-api-enphase)
+    - [Enphase Local API (enphase_local)](#enphase-local-api-enphase_local)
     - [Solax Cloud API (Solax)](#solax-cloud-api-solax)
     - [Solis Cloud API (Solis)](#solis-cloud-api-solis)
     - [Sigenergy Cloud API (Sigenergy)](#sigenergy-cloud-api-sigenergy)
@@ -1292,6 +1293,78 @@ the charge-from-grid (CFG) and discharge-to-grid (DTG) schedule families to be a
 of controls are always published. There is no separate freeze control: freeze-export is derived
 automatically (and written as a restrict-battery-discharge schedule) whenever the export target SOC is
 set to exactly 99%; 100% already means export is disabled.
+
+---
+
+### Enphase Local API (enphase_local)
+
+**Can be restarted:** Yes
+
+#### What it does (enphase_local)
+
+Controls an Enphase IQ Battery through its local Envoy/IQ Gateway over HTTPS, using a bearer JWT and the gateway's `/ivp/sc/sched` endpoint. It is separate from the Enlighten cloud component and does not log in to Enlighten or upload cloud battery schedules.
+
+Predbat stages charge/export windows and target SOCs locally. A background worker reads the gateway's SOC and applies the required override as the local clock enters or leaves a window. Home Assistant service callbacks queue the change and return without waiting for gateway requests. The displayed schedule is the requested plan; the reported applied mode comes from gateway readback.
+
+Local control changes update Predbat's cache immediately for planner readbacks. Status publication is coalesced on a separate background path, so slow Home Assistant REST responses do not block gateway SOC polling, battery control or override release.
+
+#### Gateway requirements and setup (enphase_local)
+
+- The Predbat host must be able to reach the gateway on the local network. This implementation has been tested with simulated responses; it has not been validated against a live gateway from this development environment. Firmware support for the override modes, including forced discharge, must be checked on your system.
+- Obtain a gateway JWT through Enphase's token portal and put it in `secrets.yaml`. The component uses the token you provide; it does not obtain or refresh tokens through an Enphase account. Replace an expired token and restart the component.
+- HTTPS certificate validation stays enabled. Use a certificate trusted by the runtime, or configure a SHA-256 fingerprint obtained through a trusted route. An optional fingerprint pins the gateway certificate; it is not a setting to disable verification.
+- Remove the existing `enphase_username` and `enphase_password` cloud-component configuration before enabling local control. Setting `enphase_automatic: false` does **not** disable cloud schedule writes. The local component rejects an active cloud controller. Disable other battery-control automations too, so only one controller owns the battery.
+- Start in **Monitor**, with `switch.predbat_set_read_only` on (substitute your configured prefix). Check SOC, capacity, maximum power and the gateway mode before selecting **Control charge & discharge** and turning read-only off. **Control charge** permits charging without forced export. **Monitor** and **Control SOC only** do not issue force commands.
+
+Use [the local configuration template](https://github.com/springfall2008/batpred/blob/main/templates/enphase_local.yaml) as a starting point. Replace its Home Assistant telemetry placeholders and remove `template: true` after configuring it. The quoted gateway/token values are editing placeholders: real `apps.yaml` supports `!secret`, and the template shows the corresponding secret references in comments.
+
+#### Configuration Options (enphase_local)
+
+| Option | Type | Required | Default | Config Key | Description |
+| ------ | ---- | -------- | ------- | ---------- | ----------- |
+| `host` | String | Yes | - | `enphase_local_host` | Gateway hostname/IP or HTTPS authority URL, optionally including a port; no path or credentials |
+| `token` | String | Yes | - | `enphase_local_token` | Gateway bearer JWT; use `!secret` |
+| `fingerprint` | String | No | Runtime CA trust | `enphase_local_fingerprint` | Trusted SHA-256 certificate fingerprint, as 64 hexadecimal characters or colon-separated bytes |
+| `automatic` | Boolean | No | false | `enphase_local_automatic` | Wire Predbat's SOC, capacity and local schedule controls automatically |
+| `battery_rate_max` | Float | No | 0 | `enphase_local_battery_rate_max` | Maximum battery power in watts for planning; a positive value is required for automatic configuration |
+| `capacity_kwh` | Float | No | Gateway value | `enphase_local_capacity_kwh` | Optional positive battery-capacity override in kWh; otherwise `max_energy` from the gateway is converted from Wh |
+| `poll_seconds` | Float | No | 5 | `enphase_local_poll_seconds` | Worker polling interval in seconds, from 2 to 30 |
+| `request_timeout` | Float | No | 5 | `enphase_local_request_timeout` | Total deadline for one gateway request in seconds, from 1 to 15 |
+| `allow_discharge` | Boolean | No | true | `enphase_local_allow_discharge` | Permit forced discharge when Predbat is in **Control charge & discharge** mode |
+
+Automatic configuration also installs the `discharge_start_service` and `discharge_stop_service` sequences that pass the planner's actual export target to the worker. Manual configuration needs those service sequences from `automatic_config()` as well as the control-entity bindings; a charge-target or reserve binding alone does not supply the export stop. Using `enphase_local_automatic: true` is recommended.
+
+The maximum power setting describes the battery for the planner. `/ivp/sc/sched` accepts an operating mode, so this component cannot request an exact charge/discharge wattage or current. Set the configured maximum to the real limit of your battery system. Keep `set_charge_low_power` and `set_export_low_power` off: the worker refuses forced control when those unsupported options are enabled.
+
+#### Operating modes and SOC limits (enphase_local)
+
+| Override | Gateway mode | Use |
+| -------- | ------------ | --- |
+| `2` | Charge | Force charging while the charge window is active and SOC is below its target |
+| `3` | Discharge | Force export while the export window is active and SOC is above its target and reserve |
+| `1` | ZeroNet | Self-consumption outside forced charge/export |
+| `4` | NoDischarge | Prevent discharge at the software reserve or once a charge target has been reached |
+| `-1` | Release | Return an override owned by this component to the gateway's underlying operating mode |
+
+The reserve and target SOCs are software limits enforced by the worker against fresh `agg_soc`. The component does not write or change the gateway's hardware backup-reserve setting. Firmware determines how native limits behave during an override; that behaviour has not been validated on live hardware. Target and reserve enforcement is approximate to the polling interval plus request time, rather than a hardware SOC cut-off. Missing or stale SOC cannot authorise continued forced charging or discharging. A successful POST is followed by readback before a mode is reported as applied.
+
+Reaching an export target stops forced export and returns to self-consumption. The export target is not a persistent minimum SOC for serving household load; the separate reserve provides that floor.
+
+ZeroNet and release are different: ZeroNet requests self-consumption, whereas release lets the gateway's existing profile take over. A backup-only profile can therefore behave differently after release. Unknown gateway modes are reported without assuming they mean self-consumption.
+
+Both Predbat freeze features are disabled for this inverter type. In particular, **NoDischarge is not Predbat's Freeze Export**, which stops charging; mapping those opposite behaviours would give incorrect battery control.
+
+Before issuing a forced mode, the component records its ownership claim through Predbat's Storage component. If that record cannot be saved, it does not take control. On restart it first releases a previously owned override, then waits for a new committed plan; it does not replay an old schedule window.
+
+On a normal shutdown, the component attempts to release an override it owns within a bounded cleanup period. A process crash, loss of power or an unreachable gateway can prevent release. No hardware expiry for these overrides has been verified, so an override may remain active until gateway access is restored or another controller releases it. Check the gateway mode after an interrupted shutdown.
+
+#### Telemetry and published controls (enphase_local)
+
+The component exposes gateway SOC, operating/override mode, battery capacity and control status, plus local reserve, window start/end, target SOC, enable and write controls. Pending schedule values describe the requested plan; use the applied-mode/control-status diagnostics to check whether the gateway accepted it.
+
+For the default prefix, SOC is `sensor.predbat_enphase_local_soc_percent`. Mode sensors retain their numeric gateway value and include a `mode_name` attribute. `binary_sensor.predbat_enphase_local_schedule_write_ok` is on only when readback confirms the requested mode; it is not a receipt for merely queuing a plan. Entity names use your configured prefix in place of `predbat`.
+
+It does not invent PV, grid, load or battery power readings or daily energy counters. Configure those through your existing Home Assistant Enphase integration or suitable meters, along with your tariff and solar forecast sources. Automatic configuration preserves these user-supplied telemetry bindings.
 
 ---
 

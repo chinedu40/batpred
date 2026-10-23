@@ -589,6 +589,7 @@ saverestore
 savez
 scalarstring
 scalings
+sched
 searr
 securetoken
 Segoe
