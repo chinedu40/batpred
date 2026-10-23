@@ -70,6 +70,7 @@ britkat1980
 bwignore
 byok
 cadata
+CAINFO
 calcsize
 calib
 Cantarell
@@ -90,6 +91,7 @@ chargelater
 chargelimit
 chargepower
 CHECKCODE
+Chinedu
 Chrg
 citem
 cloudfront
@@ -110,6 +112,7 @@ coro
 corruptleg
 corruptplans
 cprofile
+CREAT
 creds
 crosscharge
 ctrdis
@@ -181,6 +184,7 @@ efgh
 elif
 elinter
 eload
+ELOOP
 EMEA
 emqx
 emszzzz
@@ -199,6 +203,7 @@ energythroughput
 enho
 Enlighten
 enlm
+ENOENT
 ENOTFOUND
 enph
 enphase
@@ -219,10 +224,12 @@ EVDC
 evergen
 evilspringfall
 evse
+execv
 exog
 expmsg
 exportlimit
 exportvalue
+fchown
 fdpwr
 fdsoc
 feedin
@@ -245,6 +252,8 @@ foxesscloud
 freephase
 fromisoformat
 fronius
+fstat
+fullmatch
 funcs
 futurerate
 gaierror
@@ -258,6 +267,7 @@ geseriale
 getaffinity
 getall
 getattr
+geteuid
 getrusage
 Ginlong
 githubusercontent
@@ -316,6 +326,7 @@ iflux
 importlimit
 inday
 indra
+inodes
 inteless
 INTELLI
 intelligentdevice
@@ -425,6 +436,8 @@ monokai
 Mosquitto
 mousedown
 mpan
+MPLBACKEND
+MPLCONFIGDIR
 mppt
 mprn
 mpxn
@@ -450,6 +463,10 @@ nocharge
 NODETAIL
 nodischarge
 nohup
+NONBLOCK
+nonhex
+nonlist
+nonroot
 noopener
 nord
 nordpool
@@ -502,6 +519,7 @@ percnt
 peterhaban
 pgrid
 photovoltaics
+pipefail
 pitem
 pkwh
 plenticore
@@ -542,19 +560,24 @@ PVONLY
 pvpower
 pvwatts
 pwindow
+pycache
 pyjwt
 pylint
 pymyenergi
 pypi
 pyproject
 pytest
+PYTHONDONTWRITEBYTECODE
 pythonhashseed
+PYTHONPATH
+PYTHONUNBUFFERED
 pytz
 Quattro
 Qwen
 randn
 rany2
 rarr
+RDONLY
 reactivepower
 readback
 readbacks
@@ -604,6 +627,8 @@ Sergoe
 sess
 setattr
 setdefault
+setgid
+setgroups
 setpoints
 setstate
 SFMB
@@ -764,6 +789,7 @@ workmode
 worktree
 writeonly
 wrongsha
+WRONLY
 wwxxabcdefyyzz
 xaxis
 xaxistooltip

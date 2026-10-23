@@ -1,0 +1,44 @@
+---
+pred_bat:
+  module: predbat
+  class: PredBat
+  prefix: predbat_enphase_test
+  timezone: Europe/London
+
+  # Complete this file, then remove template: true.
+  template: true
+  mode: Monitor
+  set_read_only: true
+  auto_update: false
+  set_charge_low_power: false
+  set_export_low_power: false
+
+  # Add the real values to secrets.yaml in this add-on's own config folder,
+  # then uncomment these lines. Gateway authentication is manual in this build.
+  # enphase_local_host: !secret enphase_local_host
+  # enphase_local_token: !secret enphase_local_token
+  # enphase_local_fingerprint: !secret enphase_local_fingerprint
+  enphase_local_automatic: true
+  enphase_local_allow_discharge: true
+  enphase_local_poll_seconds: 5
+  enphase_local_request_timeout: 5
+
+  # EXAMPLE ONLY: replace with the actual maximum battery power in watts.
+  enphase_local_battery_rate_max: 10000
+  # enphase_local_capacity_kwh: 15
+
+  inverter_type:
+    - EnphaseLocal
+  num_inverters: 1
+
+  # Keep this add-on connected to its own Home Assistant through Supervisor.
+  # Do not copy ha_url, ha_key or runtime state from another instance.
+  # Merge your actual energy/power sensors and rate/forecast configuration here.
+  load_today: sensor.replace_with_house_energy_today
+  import_today: sensor.replace_with_grid_import_energy_today
+  export_today: sensor.replace_with_grid_export_energy_today
+  pv_today: sensor.replace_with_pv_energy_today
+  load_power: sensor.replace_with_house_power
+  grid_power: sensor.replace_with_grid_power
+  battery_power: sensor.replace_with_battery_power
+  pv_power: sensor.replace_with_pv_power

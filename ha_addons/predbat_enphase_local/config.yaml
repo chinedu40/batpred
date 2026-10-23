@@ -1,0 +1,23 @@
+---
+name: Predbat Enphase Local - Testing
+version: '0.1.0'
+slug: predbat_enphase_local
+description: Predbat with local Enphase battery control from the testing branch
+url: https://github.com/chinedu40/batpred/tree/codex/enphase-local-api/ha_addons/predbat_enphase_local
+arch:
+  - amd64
+  - aarch64
+stage: experimental
+startup: application
+boot: manual
+init: false
+timeout: 120
+ingress: true
+ingress_port: 5052
+panel_icon: mdi:battery
+homeassistant_api: true
+auth_api: true
+map:
+  - addon_config:rw
+options: {}
+schema: {}

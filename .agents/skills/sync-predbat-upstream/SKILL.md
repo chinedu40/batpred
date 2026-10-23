@@ -114,11 +114,39 @@ repeat GitNexus change detection before committing. Never disable checks or
 assertions to obtain a pass. A no-op merge needs no repeated runtime suite; use
 checks proportional to actual changes. Diagnose failures before claiming success.
 
-## Commit, publish and verify
+## Commit core changes and refresh the add-on pin
 
 Commit a validated pending merge with a clear merge message. If the result was a
-fast-forward or no-op, do not create an empty commit. Check the target branch and
-working tree again, then push normally:
+fast-forward or no-op, do not create an empty commit. Once the working tree is
+clean, check whether `ha_addons/predbat_enphase_local/source.json` exists. When it
+does, record the resulting source commit before changing add-on metadata:
+
+```bash
+core_sync_sha=$(git rev-parse --verify HEAD^{commit})
+addon_source_sha=$(python3 -c 'import json; print(json.load(open("ha_addons/predbat_enphase_local/source.json"))["ref"])')
+git diff --quiet "$addon_source_sha" "$core_sync_sha" -- apps/predbat requirements.txt templates/enphase_local.yaml
+```
+
+Inspect that comparison: exit zero means the add-on's application source is
+unchanged; exit 1 means the pin needs updating; other
+statuses are errors to diagnose. Check that the pin is a full existing commit SHA
+and the repository is `chinedu40/batpred`. For a source change, set `source.json`'s
+`ref` to **`$core_sync_sha`**, bump the patch version in the add-on's `config.yaml`
+and add an entry to its `CHANGELOG.md`. Pure add-on or skill changes do not require
+a new source pin. Never pin to the later metadata commit or repeatedly advance the
+pin to HEAD: the source commit must already exist, be clean and have passed the
+application checks.
+
+Run the add-on's unit tests, applicable pre-commit checks and available source/build
+smoke checks; capture logs and preserve exit statuses. Inspect the metadata diff,
+run GitNexus `detect_changes()` and commit the validated pin/version/changelog
+changes separately before pushing. If this branch has no add-on package, record
+that and skip this step. A no-op sync needs no metadata commit when the pin already
+matches the application source.
+
+## Publish and verify
+
+Check the target branch and working tree again, then push normally:
 
 ```bash
 git push origin "HEAD:refs/heads/$sync_branch"
@@ -126,16 +154,23 @@ git push origin "HEAD:refs/heads/$sync_branch"
 
 If another writer wins the push race, explicitly fetch the feature ref again,
 merge its new commits without rewriting history, inspect and retest affected
-changes, then retry the normal push. Bound retries and report a persistent race.
+changes, recheck the add-on source pin against the resulting source, then retry
+the normal push. Bound retries and report a persistent race.
 Do not repeat unchanged failed pushes or use force.
 
 Fetch the feature ref explicitly once more to verify the published result; the
 checkout's limited fetch configuration may not update it automatically on push.
 Require `git merge-base --is-ancestor upstream/main HEAD`, the same check for
 `"$pre_sync_sha"`, `git rev-parse "origin/$sync_branch"` equal to local HEAD, and
-a clean working tree. If official main advanced during the task, report exactly
-which fetched SHA was incorporated; sync again if the user requested the new tip.
+a clean working tree. When the add-on exists, reread its pinned SHA and require
+`git diff --quiet "$addon_source_sha" HEAD -- apps/predbat requirements.txt templates/enphase_local.yaml`
+to succeed. Confirm the published branch includes both the validated source
+commit and any subsequent add-on metadata commit; require
+`git merge-base --is-ancestor "$addon_source_sha" HEAD` too. If official main
+advanced during the task, report exactly which fetched SHA was incorporated;
+sync again if the user requested the new tip.
 
 Report the branch, preserved pre-sync SHA/backup ref, incorporated upstream SHA,
-merge/conflict outcome, checks and log locations, final commit, push verification,
-and any remaining blocker. Do not imply that a Git push deployed Home Assistant.
+merge/conflict outcome, checks and log locations, pinned source SHA and add-on
+version/checks when applicable, final commit, push verification, and any remaining
+blocker. Do not imply that a Git push deployed Home Assistant.
